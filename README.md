@@ -38,6 +38,7 @@ Features include:
   * [Console/gamemode selection bindings](#consolegamemode-selection-bindings)
   * [Creating custom input modes](#creating-custom-input-modes)
   * [Mod X lightshield and R shield tilt](#mod-x-lightshield-and-r-shield-tilt)
+  * [Project M/Project+ mode](#project-mproject+-mode)
 * [Troubleshooting](#troubleshooting)
 * [Contributing](#contributing)
 * [Contributors](#contributors)
@@ -58,20 +59,26 @@ or clone the repository with `git clone --recursive` if you have git installed
 
 After that:
 1. Open the HayB0XX.ino sketch in the Arduino IDE
-2. Change the `#include "setup_xxx.h"` line at the top to use the
-  appropriate pinout/setup file for the type of DIY that you are using:
+2. Change the `#include "setup_xxx.h"` line at the top to use the appropriate
+   pinout/setup file for the type of DIY that you are using:
   - `setup_gccpcb1.h` for GCCPCB1
   - `setup_gccpcb2.h` for GCCPCB2
   - `setup_gccmx.h` for GCCMX
+  - `setup_smashbox.h` for Smash Box
   - `setup_arduino_nativeusb.h` for Arduino with native USB support (Leonardo/Micro)
     - Edit `pinout_arduino.h` to match your wiring and the buttons that you have
   - `setup_arduino.h` for Arduino without native USB support (e.g. Nano or other)
     - Edit `pinout_arduino.h` to match your wiring and the buttons that you have
-    - You will also have to delete the files `DInputBackend.h` and
-      `DInputBackend.cpp` otherwise the Arduino IDE will complain at you
-3. Click Tools > Board and select your board type. For GCCPCB/GCCMX it should be
+    - You will also have to delete the files `DInputBackend.h`,
+      `DInputBackend.cpp`, `KeyboardMode.h`, `KeyboardMode.cpp`,
+      `DefaultKeyboardMode.h`, and `DefaultKeyboardMode.cpp` otherwise the
+      Arduino IDE will complain at you
+3. For any buttons that your controller doesn't have (e.g. Select and Home),
+   remove those lines from the pinout file and remove any references to them
+   from `readInputs()` and `setup()` in `HayB0XX.ino`
+4. Click Tools > Board and select your board type. For GCCPCB/GCCMX it should be
    Arduino Leonardo.
-4. Click Upload
+5. Click Upload
 
 ## Usage
 
@@ -98,8 +105,9 @@ switch game anyway. It also serves the purpose of reducing the number of buttons
 you have to hold with one hand while plugging in.
 
 The default controller mode button combinations are:
-- Mod X + Start + Down - FGC mode (Hitbox style fighting game layout)
 - Mod X + Start + L - Melee mode (default)
+- Mod X + Start + Left - Project M/Project+ mode
+- Mod X + Start + Down - FGC mode (Hitbox style fighting game layout)
 
 Default keyboard mode button combinations:
 - Mod Y + Start + L - Default keyboard mode
@@ -252,6 +260,40 @@ modifiers.
 If your DIY B0XX has no lightshield buttons, you may want to use Mod X for
 lightshield and put shield tilt on R instead. You can do this by using the
 Melee18Button mode instead of Melee20Button.
+
+### Project M/Project+ mode
+
+The ProjectM mode has some extra options to configure certain behaviours. See
+the constructor signature below for reference.
+
+```
+ProjectM(socd::SocdType socdType, state::InputState &rInputState,
+           CommunicationBackend *communicationBackend,
+           bool ledgedashMaxJumpTraj, bool trueZPress);
+```
+
+These options are configured by setting the relevant constructor parameter to
+true or false in `HayB0XX.ino`.
+
+Firstly, it allows you to enable or disable the behaviour borrowed from Melee
+mode where holding left and right (and no vertical directions) will give a 1.0 
+cardinal regardless of modifiers being held. This is controlled using the
+`ledgedashMaxJumpTraj` parameter.
+
+If you change the SOCD mode to 2IP (with reactivation), you should also change
+this option to false if you want a smooth gameplay experience.
+
+Secondly, Project M/Project+ do not handle Z presses the same way as Melee does.
+Melee interprets a Z press as lightshield + A, and thus it can be used for L
+cancelling without locking you out of techs. In PM/P+, a Z press will trigger a
+tech and thus cause unwanted tech lockouts if used to L cancel.
+By default in HayB0XX, the ProjectM mode is set to use a macro of lightshield + A
+in order to preserve expected behaviour from Melee. However, this macro does not
+enable you to use tether/grapple attacks or grab items. To workaround this, you
+can press Mod X + Z to send a true Z input.
+
+If this bothers you, and you just want to send a true Z input by default when
+pressing Z, you can set the `trueZPress` parameter to true.
 
 ## Troubleshooting
 
